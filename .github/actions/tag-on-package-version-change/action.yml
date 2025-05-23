@@ -27,8 +27,9 @@ runs:
         BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
 
         # Get suffix from the input map using jq
-        # If the branch is not in the map, or the map is empty/invalid, default to an empty suffix.
-        BRANCH_SUFFIX=$(echo "${INPUT_BRANCH_SUFFIX_MAP}" | jq -r --arg bn "$BRANCH_NAME" '.[$bn] // ""')
+        # Remove lines starting with # and empty lines before passing to jq
+        CLEANED_SUFFIX_MAP=$(echo "${INPUT_BRANCH_SUFFIX_MAP}" | sed '/^#/d;/^$/d')
+        BRANCH_SUFFIX=$(echo "$CLEANED_SUFFIX_MAP" | jq -r --arg bn "$BRANCH_NAME" '.[$bn] // ""')
 
         echo "Branch Name: $BRANCH_NAME"
         echo "Branch Suffix Map: ${INPUT_BRANCH_SUFFIX_MAP}"
