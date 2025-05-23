@@ -31,8 +31,6 @@ jobs:
       - name: Tag on Package Version Change
         uses: ./.github/actions/tag-on-package-version-change
         with:
-          git-user-name: "My Custom Bot"
-          git-user-email: "bot@example.com"
           # Provide valid JSON here
           branch-suffix-map: |
             {
