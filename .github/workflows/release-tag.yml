@@ -29,7 +29,7 @@ jobs:
           node-version: "18"
 
       - name: Tag on Package Version Change
-        uses: ./.github/actions/tag-on-package-version-change
+        uses: supunlakmal/gh-action-tag-on-npm-version@1.0.3
         with:
           # Provide valid JSON here
           branch-suffix-map: |
