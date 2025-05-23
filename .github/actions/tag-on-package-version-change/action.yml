@@ -10,10 +10,10 @@ inputs:
   git-user-email:
     description: Git user.email.
     default: github-actions[bot]@users.noreply.github.com
-  branch-suffix-map: # <-- NEW INPUT
-    description: 'A JSON string mapping branch names to tag suffixes. e.g., ''{"main": "-rc", "develop": "-dev"}'''
+  branch-suffix-map:
+    description: 'A JSON string mapping branch names to tag suffixes. e.g., ''{"main": "-rc", "develop": "-dev"}''. Must be valid JSON.' # Clarified JSON requirement
     required: false
-    default: "{}" # Default to an empty JSON object if not provided
+    default: "{}"
 
 runs:
   using: composite
@@ -23,42 +23,65 @@ runs:
         #!/bin/bash
         set -eux
 
-        # Extract branch name
-        BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+        # Use github.ref_name for cleaner branch/tag name extraction
+        BRANCH_NAME="${{ github.ref_name }}"
 
-        # Get suffix from the input map using jq
-        # Remove lines starting with # and empty lines before passing to jq
-        CLEANED_SUFFIX_MAP=$(echo "${INPUT_BRANCH_SUFFIX_MAP}" | sed '/^#/d;/^$/d')
-        BRANCH_SUFFIX=$(echo "$CLEANED_SUFFIX_MAP" | jq -r --arg bn "$BRANCH_NAME" '.[$bn] // ""')
+        # Get suffix from the input map using jq.
+        # The input INPUT_BRANCH_SUFFIX_MAP must be a valid JSON string.
+        # jq will error if it's not, and set -e will stop the script.
+        BRANCH_SUFFIX=$(echo "${INPUT_BRANCH_SUFFIX_MAP}" | jq -r --arg bn "$BRANCH_NAME" '.[$bn] // ""')
 
         echo "Branch Name: $BRANCH_NAME"
-        echo "Branch Suffix Map: ${INPUT_BRANCH_SUFFIX_MAP}"
+        echo "Branch Suffix Map (raw input): ${INPUT_BRANCH_SUFFIX_MAP}"
         echo "Determined Suffix: $BRANCH_SUFFIX"
 
-        PACKAGE_VERSION=$(jq -r '.version' package.json)
-        if [ -z "$PACKAGE_VERSION" ] || [ "$PACKAGE_VERSION" == "null" ]; then
-          echo "Error: Could not read version from package.json"
+        # Check if package.json exists
+        if [ ! -f package.json ]; then
+          echo "Error: package.json not found."
           exit 1
         fi
 
-        TAG="${PACKAGE_VERSION}${BRANCH_SUFFIX}"
-        echo "Proposed Tag: $TAG"
+        # Read package version from package.json
+        RAW_PACKAGE_VERSION=$(jq -r '.version' package.json)
 
-        # In case only a shallow clone was done
+        # Validate package version
+        if [ -z "$RAW_PACKAGE_VERSION" ] || [ "$RAW_PACKAGE_VERSION" == "null" ]; then
+          echo "Error: Could not read version from package.json, or version is null."
+          exit 1
+        fi
+
+        # Sanitize package version: Git tags cannot contain '+', replace with '-'
+        # (Common in semver build metadata e.g., 1.0.0+build123)
+        PACKAGE_VERSION=$(echo "$RAW_PACKAGE_VERSION" | sed 's/+/-/g')
+        echo "Raw Package Version: $RAW_PACKAGE_VERSION"
+        echo "Sanitized Package Version for Tag: $PACKAGE_VERSION"
+
+        TAG_NAME="${PACKAGE_VERSION}${BRANCH_SUFFIX}"
+        echo "Proposed Tag: $TAG_NAME"
+
+        # Ensure local repository has up-to-date tags from remote
+        # --force overwrites local tags if they differ from remote ones for the same name
         git fetch --tags --force
 
-        if ! git tag | grep -Fx "${TAG}"; then # Use -Fx for exact, full-line match
+        # Check if tag already exists.
+        # git rev-parse exits with 0 if ref exists, non-zero otherwise.
+        if ! git rev-parse -q --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+          echo "Configuring Git user..."
           git config user.name "${GIT_USER_NAME}"
           git config user.email "${GIT_USER_EMAIL}"
 
-          echo "Creating tag ${TAG}..."
-          git tag -a "${TAG}" -m "Version ${TAG}"
-          git push --follow-tags
-          echo "Tag ${TAG} created and pushed."
+          echo "Creating tag ${TAG_NAME}..."
+          # Create an annotated tag
+          git tag -a "${TAG_NAME}" -m "Version ${TAG_NAME}"
+
+          echo "Pushing tag ${TAG_NAME} to remote..."
+          # Push only the created tag explicitly
+          git push origin "refs/tags/${TAG_NAME}"
+          echo "Tag ${TAG_NAME} created and pushed."
         else
-          echo "Tag '${TAG}' already exists. No action taken."
+          echo "Tag '${TAG_NAME}' already exists. No action taken."
         fi
       env:
         GIT_USER_NAME: ${{ inputs.git-user-name }}
         GIT_USER_EMAIL: ${{ inputs.git-user-email }}
-        INPUT_BRANCH_SUFFIX_MAP: ${{ inputs.branch-suffix-map }} # Pass the new input as an env var
+        INPUT_BRANCH_SUFFIX_MAP: ${{ inputs.branch-suffix-map }}
