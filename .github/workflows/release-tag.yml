@@ -3,7 +3,7 @@
 name: Create Version Tag on Package Update
 
 on:
-  pull_request:
+  push:
     branches:
       - main
       - "dev"
