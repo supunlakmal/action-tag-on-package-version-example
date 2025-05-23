@@ -1,0 +1,63 @@
+name: Tag on Package Version Change
+branding:
+  icon: package
+  color: green
+description: Creates a new Git tag whenever the npm package version has changed, with a branch-specific suffix.
+inputs:
+  git-user-name:
+    description: Git user.name.
+    default: github-actions[bot]
+  git-user-email:
+    description: Git user.email.
+    default: github-actions[bot]@users.noreply.github.com
+  branch-suffix-map: # <-- NEW INPUT
+    description: 'A JSON string mapping branch names to tag suffixes. e.g., ''{"main": "-rc", "develop": "-dev"}'''
+    required: false
+    default: "{}" # Default to an empty JSON object if not provided
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        #!/bin/bash
+        set -eux
+
+        # Extract branch name
+        BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+
+        # Get suffix from the input map using jq
+        # If the branch is not in the map, or the map is empty/invalid, default to an empty suffix.
+        BRANCH_SUFFIX=$(echo "${INPUT_BRANCH_SUFFIX_MAP}" | jq -r --arg bn "$BRANCH_NAME" '.[$bn] // ""')
+
+        echo "Branch Name: $BRANCH_NAME"
+        echo "Branch Suffix Map: ${INPUT_BRANCH_SUFFIX_MAP}"
+        echo "Determined Suffix: $BRANCH_SUFFIX"
+
+        PACKAGE_VERSION=$(jq -r '.version' package.json)
+        if [ -z "$PACKAGE_VERSION" ] || [ "$PACKAGE_VERSION" == "null" ]; then
+          echo "Error: Could not read version from package.json"
+          exit 1
+        fi
+
+        TAG="${PACKAGE_VERSION}${BRANCH_SUFFIX}"
+        echo "Proposed Tag: $TAG"
+
+        # In case only a shallow clone was done
+        git fetch --tags --force
+
+        if ! git tag | grep -Fx "${TAG}"; then # Use -Fx for exact, full-line match
+          git config user.name "${GIT_USER_NAME}"
+          git config user.email "${GIT_USER_EMAIL}"
+
+          echo "Creating tag ${TAG}..."
+          git tag -a "${TAG}" -m "Version ${TAG}"
+          git push --follow-tags
+          echo "Tag ${TAG} created and pushed."
+        else
+          echo "Tag '${TAG}' already exists. No action taken."
+        fi
+      env:
+        GIT_USER_NAME: ${{ inputs.git-user-name }}
+        GIT_USER_EMAIL: ${{ inputs.git-user-email }}
+        INPUT_BRANCH_SUFFIX_MAP: ${{ inputs.branch-suffix-map }} # Pass the new input as an env var
