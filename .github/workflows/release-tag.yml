@@ -21,7 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Important for git fetch --tags and git rev-parse to work correctly
 
       - name: Set up Node.js (for jq, if not pre-installed, though usually it is)
         uses: actions/setup-node@v4
@@ -33,11 +33,10 @@ jobs:
         with:
           git-user-name: "My Custom Bot"
           git-user-email: "bot@example.com"
+          # Provide valid JSON here
           branch-suffix-map: |
             {
               "main": "",
               "dev": "-alfa",
-              "qa": "-beta",
+              "qa": "-beta"
             }
-            # You can add any branch-to-suffix mapping here.
-            # If a branch is not listed, it will get no suffix (empty string).
