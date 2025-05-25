@@ -1,4 +1,4 @@
-name: Tag on Package Version Change
+name: Tag Branch on Package Version Change
 branding:
   icon: package
   color: green
