@@ -25,3 +25,7 @@ jobs:
               "qa": "-beta",
               "prod": "-rc"
             }
+          tag-message: |
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Date: ${{ github.event.head_commit.timestamp }}
