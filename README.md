@@ -1,86 +1,56 @@
 # GitHub Action: Auto Tag on Package Version Change
 
-This GitHub Action automates the creation of Git tags when the `version` field in a `package.json` file is updated.
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=flat&logo=githubactions&logoColor=white)](https://github.com/features/actions)
 
-## Key Features
+Automatically create Git tags when the `version` field in your `package.json` file changes. Perfect for maintaining version control and release management in your Node.js projects.
 
-- Automatically creates tags based on the `package.json` version.
-- Allows branch-specific suffixes for tags (e.g., `-alpha`, `-beta`, `-rc`).
-- Customizable Git user for tagging.
-- Easy to integrate into existing GitHub workflows.
+## 📋 Overview
 
-## Inputs
+This GitHub Action streamlines your release process by:
 
-### `git-user-name`
+- Monitoring changes to `package.json` version
+- Creating Git tags automatically
+- Supporting different environments with branch-specific tag suffixes
+- Maintaining clean version control
 
-- **Description:** Git user.name.
-- **Default:** `github-actions[bot]`
-- **Required:** No
+## ⚙️ Features
 
-### `git-user-email`
+- **Automated Tagging**: Creates tags based on `package.json` version changes
+- **Environment Support**: Configure different tag suffixes for various branches
+- **Customizable**: Flexible Git user configuration
+- **Lightweight**: Minimal setup required
+- **Safe**: Prevents duplicate tags and validates version format
 
-- **Description:** Git user.email.
-- **Default:** `github-actions[bot]@users.noreply.github.com`
-- **Required:** No
+## 🚀 Quick Start
 
-### `branch-suffix-map`
+1. Create `.github/workflows/release-tag.yml`:
 
-- **Description:** A JSON string mapping branch names to tag suffixes. e.g., `'{"main": "-rc", "develop": "-dev"}'`. Must be valid JSON.
-- **Default:** `{}`
-- **Required:** No
-
-## Example Usage
-
+````markdown
 ```yaml
-
-# .github/workflows/release-tag.yml
-
-name: Create Version Tag on Package Update
-
+name: Create Version Tag
 on:
   push:
-    branches:
-      - main
-      - "dev"
-      - "qa"
-      - "prod"
-    paths:
-      - "package.json"
+    branches: [main, dev, qa, prod]
+    paths: ["package.json"]
 
 jobs:
   tag-version:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Important for git fetch --tags and git rev-parse to work correctly
-
-      - name: Set up Node.js (for jq, if not pre-installed, though usually it is)
-        uses: actions/setup-node@v4
+          fetch-depth: 0
+      - uses: ./.github/actions/tag-on-package-version-change
         with:
-          node-version: "18"
-
-      - name: Tag on Package Version Change
-        uses: ./.github/actions/tag-on-package-version-change
-        with:
-          # Provide valid JSON here
           branch-suffix-map: |
             {
               "main": "",
-              "dev": "-alfa",
+              "dev": "-alpha",
               "qa": "-beta",
               "prod": "-rc"
             }
 ```
-
-## Author
-
-This project is maintained by the repository owners. You can specify an author in your `package.json` or update this section directly.
-
-## License
-
-This project is licensed under the ISC License. See the `LICENSE` file for more details (if one exists, or add a generic ISC license text if appropriate).
+````
