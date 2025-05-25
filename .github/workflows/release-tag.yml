@@ -12,11 +12,21 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Get PR Author Info
+        id: pr-author
+        run: |
+          echo "AUTHOR_NAME=${{ github.event.sender.login }}" >> $GITHUB_ENV
+          echo "AUTHOR_EMAIL=${{ github.event.sender.email }}" >> $GITHUB_ENV
+          echo "COMMIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: ./.github/actions/tag-on-package-version-change
         with:
+          git-user-name: ${{ env.AUTHOR_NAME }}
+          git-user-email: ${{ env.AUTHOR_EMAIL }}
           branch-suffix-map: |
             {
               "main": "",
@@ -25,7 +35,9 @@ jobs:
               "qa": "-beta",
               "prod": "-rc"
             }
-          tag-message: |
-            Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Date: ${{ github.event.head_commit.timestamp }}
+
+      - name: Print Tag Creation Info
+        run: |
+          echo "Tag created by: ${{ env.AUTHOR_NAME }}"
+          echo "Commit SHA: ${{ env.COMMIT_SHA }}"
+          echo "Branch: ${{ github.ref_name }}"
