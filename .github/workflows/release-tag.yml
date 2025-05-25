@@ -9,6 +9,7 @@ on:
       - "dev"
       - "qa"
       - "prod"
+      - "test-code"
     paths:
       - "package.json"
 
@@ -36,6 +37,7 @@ jobs:
           branch-suffix-map: |
             {
               "main": "",
+              "test-code": "-pre-alfa",
               "dev": "-alfa",
               "qa": "-beta",
               "prod": "-rc"
