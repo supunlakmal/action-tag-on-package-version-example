@@ -1,3 +1,36 @@
+# GitHub Action: Auto Tag on Package Version Change
+
+This GitHub Action automates the creation of Git tags when the `version` field in a `package.json` file is updated.
+
+## Key Features
+
+- Automatically creates tags based on the `package.json` version.
+- Allows branch-specific suffixes for tags (e.g., `-alpha`, `-beta`, `-rc`).
+- Customizable Git user for tagging.
+- Easy to integrate into existing GitHub workflows.
+
+## Inputs
+
+### `git-user-name`
+
+- **Description:** Git user.name.
+- **Default:** `github-actions[bot]`
+- **Required:** No
+
+### `git-user-email`
+
+- **Description:** Git user.email.
+- **Default:** `github-actions[bot]@users.noreply.github.com`
+- **Required:** No
+
+### `branch-suffix-map`
+
+- **Description:** A JSON string mapping branch names to tag suffixes. e.g., `'{"main": "-rc", "develop": "-dev"}'`. Must be valid JSON.
+- **Default:** `{}`
+- **Required:** No
+
+## Example Usage
+
 ```yaml
 
 # .github/workflows/release-tag.yml
@@ -43,3 +76,11 @@ jobs:
               "prod": "-rc"
             }
 ```
+
+## Author
+
+This project is maintained by the repository owners. You can specify an author in your `package.json` or update this section directly.
+
+## License
+
+This project is licensed under the ISC License. See the `LICENSE` file for more details (if one exists, or add a generic ISC license text if appropriate).
